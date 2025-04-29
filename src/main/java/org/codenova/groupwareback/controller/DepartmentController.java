@@ -20,7 +20,8 @@ public class DepartmentController {
     // 부서 정보 조회에 사용할 리포지토리 객체
     private final DepartmentRepository departmentRepository;
 
-    // @RequestMapping("/api")이면
+    // ===========================================================
+    // @RequestMapping("/api")일 경우,
     // @GetMapping("/department")으로 요청 처리
     @GetMapping
     // 데이터를 HTTP 응답 바디에 담아 클라이언트에 전송
@@ -30,7 +31,7 @@ public class DepartmentController {
         List<Department> list = departmentRepository.findAll();
 
         // 조회한 부서 리스트를 HTTP 응답(200 OK)으로 반환
-        // 200 OK는 요청이 성공했음을 나타냄
+        // 200 OK는 요청이 성공했음을 나타내는 성공 응답 상태 코드
         return ResponseEntity.status(200).body(list);
     }
 }
