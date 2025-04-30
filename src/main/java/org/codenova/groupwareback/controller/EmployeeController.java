@@ -1,5 +1,7 @@
 package org.codenova.groupwareback.controller;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.codenova.groupwareback.repository.EmployeeRepository;
 import org.codenova.groupwareback.repository.SerialRepository;
 import org.codenova.groupwareback.request.AddEmployee;
 import org.codenova.groupwareback.request.Login;
+import org.codenova.groupwareback.response.LoginResult;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -93,7 +96,8 @@ public class EmployeeController {
 
     // 아이디, 비밀번호 검증 처리 ===========================================================
     @PostMapping("/verify")
-    public ResponseEntity<?> verifyHandle(@RequestBody @Valid Login login, BindingResult result) {
+    public ResponseEntity<LoginResult> verifyHandle(@RequestBody @Valid Login login,
+                                          BindingResult result) {
 
         if (result.hasErrors()) {
             return ResponseEntity.status(400).body(null);
@@ -105,7 +109,17 @@ public class EmployeeController {
             return ResponseEntity.status(401).body(null);
         }
 
-        return ResponseEntity.status(200).body(employee.get());
+        String token = JWT.create()
+                .withIssuer("groupware")
+                .withSubject(employee.get().getId())
+                .sign(Algorithm.HMAC256("groupware"));
+
+        LoginResult loginResult = LoginResult.builder()
+                .token(token)
+                .employee(employee.get())
+                .build();
+
+        return ResponseEntity.status(200).body(loginResult);
     }
 
 
@@ -125,8 +139,6 @@ public class EmployeeController {
         // 사원이 존재하면 200 OK 반환 + 사원 데이터 포함
         return ResponseEntity.status(200).body(employee.get());
     }
-
-
 }
 
 

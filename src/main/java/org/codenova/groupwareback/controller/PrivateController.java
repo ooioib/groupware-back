@@ -1,5 +1,9 @@
 package org.codenova.groupwareback.controller;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.codenova.groupwareback.entity.Employee;
@@ -7,54 +11,92 @@ import org.codenova.groupwareback.repository.EmployeeRepository;
 import org.codenova.groupwareback.request.ChangePassword;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+
 
 @CrossOrigin
 @RestController
 @RequestMapping("/api/private")
 @RequiredArgsConstructor
 public class PrivateController {
+
     private final EmployeeRepository employeeRepository;
 
-    // 수정하는 API는 put or patch mapping 을 사용하는 게 설계원칙에 맞음. (용도는 다름)
-    // 우리나라 개발자들은 보통은 put으로 처리를 하는 경우가 많음.
+    // 비밀번호 변경 API
+    // REST 설계 원칙에 따라 정보 수정은 PUT 또는 PATCH를 사용 (대부분 PUT 사용)
     @PutMapping("/change-password")
-    public ResponseEntity<?> patchChangePasswordHandle(@RequestBody @Valid ChangePassword changePassword, BindingResult bindResult) {
+    public ResponseEntity<?> patchChangePasswordHandle(
+            // 요청 헤더에서 JWT 토큰 받음
+            @RequestHeader("Authorization") @Nullable String token,
+            // 요청 본문에서 비밀번호 변경 정보 받음
+            @RequestBody @Valid ChangePassword changePassword, BindingResult bindResult) {
 
-        // if 바인딩리절트 에러 있으면 400번 응답
+        // Authorization 헤더가 없거나 Bearer 형식이 아니면 401
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(null);
+        }
+
+        // "Bearer " 접두어 제거해서 실제 토큰만 추출
+        token = token.replace("Bearer ", "");
+        String subject = null;
+
+        // 토큰 유효성 검증
+        try {
+            // JWT 검증 객체 생성 (발급자, 비밀 키 설정)
+            JWTVerifier verifier = JWT.require(Algorithm.HMAC256("groupware"))
+                    .withIssuer("groupware")
+                    .build();
+
+            // 토큰 검증
+            DecodedJWT jwt = verifier.verify(token);
+
+            // 성공 시 subject (로그인된 사원 ID) 추출
+            subject = jwt.getSubject();
+
+            // 검증 실패 → 유효하지 않은 토큰 → 인증 실패 (401)
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(null);
+        }
+
+        // 요청 데이터가 유효하지 않으면 400 Bad Request
         if (bindResult.hasErrors()) {
             return ResponseEntity.status(400).body(null);
         }
 
+        // 토큰의 소유자와 요청한 employeeId가 다르면 403 Forbidden
+        if (!changePassword.getEmployeeId().equals(subject)) {
+            return ResponseEntity.status(403).body(null);
+        }
+
+        // 해당 ID의 사원을 DB에서 찾음
         Optional<Employee> optionalEmployee = employeeRepository.findById(changePassword.getEmployeeId());
 
-        // employeeId 로 employee 찾앗는데 없으면 404 응답
+        // 사원이 존재하지 않으면 404 Not Found
         if (optionalEmployee.isEmpty()) {
             return ResponseEntity.status(404).body(null);
         }
 
         Employee employee = optionalEmployee.get();
 
-        // 찾았는데 데이터베이스에 저장된 비밀번호와 oldPassword가 다르면 401
+        // 기존 비밀번호가 DB에 저장된 비밀번호와 다르면 403 Forbidden
         if (!BCrypt.checkpw(changePassword.getOldPassword(), employee.getPassword())) {
-            return ResponseEntity.status(401).body(null);
+            return ResponseEntity.status(403).body(null);
         }
 
-        // 여기까지가 통과됬으면 찾은 객체에다가 password를 세팅시켜 (사용자가 보내준 newPassword 를 bcrypt로 암호화해서)
+        // 새 비밀번호를 bcrypt로 암호화해서 저장
         employee.setPassword(BCrypt.hashpw(changePassword.getNewPassword(), BCrypt.gensalt()));
 
-        //  active도 Y로 세팅시켜
+        // active 상태를 Y로 설정 (계정 활성화)
         employee.setActive("Y");
 
-        // 객체 save 시키고
+        // 변경된 정보 저장
         employeeRepository.save(employee);
 
-        // 200 or 203 응답
+        // 새 데이터가 있는 건 아니므로 203 반환
         return ResponseEntity.status(203).body(null);
     }
-
-
 }
