@@ -91,6 +91,24 @@ public class EmployeeController {
     }
 
 
+    // 아이디, 비밀번호 검증 처리 ===========================================================
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyHandle(@RequestBody @Valid Login login, BindingResult result) {
+
+        if (result.hasErrors()) {
+            return ResponseEntity.status(400).body(null);
+        }
+
+        Optional<Employee> employee = employeeRepository.findById(login.getId());
+
+        if (employee.isEmpty() || !BCrypt.checkpw(login.getPassword(), employee.get().getPassword())) {
+            return ResponseEntity.status(401).body(null);
+        }
+
+        return ResponseEntity.status(200).body(employee.get());
+    }
+
+
     // 특정 사원 상세 정보 조회 처리 ===========================================================
     @GetMapping("/{id}")
     public ResponseEntity<Employee> getEmployeeDetailHandle(@PathVariable String id) {
@@ -109,22 +127,6 @@ public class EmployeeController {
     }
 
 
-    // 아이디, 비밀번호 검증 처리 ===========================================================
-    @PostMapping("/verify")
-    public ResponseEntity<?> verifyHandle(@RequestBody @Valid Login login, BindingResult result) {
-
-        if (result.hasErrors()) {
-            return ResponseEntity.status(400).body(null);
-        }
-
-        Optional<Employee> employee = employeeRepository.findById(login.getId());
-
-        if (employee.isEmpty() || !BCrypt.checkpw(login.getPassword(), employee.get().getPassword())) {
-            return ResponseEntity.status(401).body(null);
-        }
-
-        return ResponseEntity.status(200).body(employee.get());
-    }
 }
 
 
