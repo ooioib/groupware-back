@@ -26,7 +26,7 @@ public class PrivateController {
     @PutMapping("/change-password")
     public ResponseEntity<?> patchChangePasswordHandle(
             // 요청 헤더에서 JWT 토큰 받음
-            @RequestAttribute("employeeId") String subject,
+            @RequestAttribute("subject") String subject,
             // 요청 본문에서 비밀번호 변경 정보 받음
             @RequestBody @Valid ChangePassword changePassword, BindingResult bindResult) {
 
