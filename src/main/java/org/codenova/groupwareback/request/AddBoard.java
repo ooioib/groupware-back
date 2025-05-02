@@ -9,9 +9,6 @@ import lombok.Setter;
 public class AddBoard {
 
     @NotBlank
-    private String employeeId;
-
-    @NotBlank
     private String title;
 
     @NotBlank
