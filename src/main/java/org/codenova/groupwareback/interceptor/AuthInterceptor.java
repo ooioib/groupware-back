@@ -14,10 +14,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
-    // JWT 검증용 비밀키
+    // JWT 검증용 비밀키 (application.yml에 정의된 값 주입)
     @Value("${secret}")
     private String secret;
 
+    // 컨트롤러 실행 전에 실행되는 메서드
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
@@ -33,7 +34,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // Authorization 헤더 확인
         String authorization = request.getHeader("Authorization");
 
-        // 헤더가 없거나 형식이 잘못되면 401
+        // 헤더가 없거나 형식이 틀리면 인증 실패 (401 Unauthorized)
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             response.sendError(401);
             return false;
@@ -42,20 +43,23 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 토큰 추출
         String token = authorization.replace("Bearer ", "");
 
-            try {
-                JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret))
-                        .withIssuer("groupware")
-                        .build();
+        // JWT 검증기를 생성 (HMAC256 + 비밀 키, 발급자 일치 여부 포함)
+        try {
+            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret))
+                    .withIssuer("groupware")
+                    .build();
 
-                DecodedJWT jwt  =verifier.verify(token);
+            // 토큰 검증 및 디코딩
+            DecodedJWT jwt = verifier.verify(token);
 
-                // 토큰주인 (로그인 사원의 아이디)
-                String subject = jwt.getSubject();
+            // JWT에 저장된 사용자 식별자(subject) 추출
+            String subject = jwt.getSubject();
 
-                // 사용자 ID를 request에 저장
-                request.setAttribute("subject", subject);
+            // 사용자 ID를 request 객체에 저장
+            request.setAttribute("subject", subject);
 
-                return true;
+            // 인증 성공 시 요청 계속 진행
+            return true;
 
         } catch (Exception e) {
             // 검증 실패 시 401

@@ -11,16 +11,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@CrossOrigin      // 프론트엔드 요청 허용 (CORS 허용)
-@RestController   // REST API를 제공하는 컨트롤러
-@RequestMapping("/api/department")   // 공통 URL 경로
-@RequiredArgsConstructor
+@CrossOrigin                // 프론트엔드에서의 CORS 요청 허용
+@RestController             // REST API 전용 컨트롤러 (JSON 반환)
+@RequestMapping("/api/department")  // 이 컨트롤러의 기본 URL 경로
+@RequiredArgsConstructor    // 생성자를 통한 의존성 주입 자동 생성
 public class DepartmentController {
 
     // 부서 정보 조회에 사용할 리포지토리 객체
     private final DepartmentRepository departmentRepository;
 
-    // ===========================================================
+    // 전체 부서 목록 조회 API ========================================
     // @RequestMapping("/api")일 경우,
     // @GetMapping("/department")으로 요청 처리
     @GetMapping

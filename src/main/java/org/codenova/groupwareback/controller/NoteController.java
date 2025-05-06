@@ -29,10 +29,11 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class NoteController {
+
+    // 쪽지 관련 처리를 위한 리포지토리 의존성 주입
     private final EmployeeRepository employeeRepository;
     private final NoteRepository noteRepository;
     private final NoteStatusRepository noteStatusRepository;
-
 
     // 쪽지 전송 API
     @PostMapping
@@ -47,7 +48,7 @@ public class NoteController {
 
         // 보낸 사람(로그인한 사원) 정보를 DB에서 조회
         Employee subjectEmployee = employeeRepository.findById(subject).orElseThrow(() -> {
-            // 사원이 없으면 인증되지 않은 사용자 처리
+            // 사원이 없으면 401 Unauthorized 인증되지 않은 사용자 처리
             return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "미인증 사원");
         });
 
@@ -62,15 +63,15 @@ public class NoteController {
         // DB에 쪽지 저장
         noteRepository.save(note);
 
-        // 수신자 ID 리스트를 하나씩 꺼내서 Employee 객체로 바꿈 (사원 존재 확인)
+        // 수신자 ID 리스트를 사원 객체로 변환하며 존재 여부 검증
         List<Employee> receiver = addNote.getReceiverIds().stream().map((id) -> employeeRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "대상이 존재하지 않습니다.")
         )).toList();
 
-        // DB에서 수신자 전체 목록 불러오기
+        // DB에서 수신자 전체 목록 조회
         List<Employee> receivers = employeeRepository.findAllById(addNote.getReceiverIds());
 
-        // 수신자 각각에 대해 상태를 따로 저장함
+        // 각 수신자에 대해 NoteStatus 생성 및 저장
         for (Employee e : receivers) {
             NoteStatus noteStatues = NoteStatus.builder()
                     .note(note) // 어떤 쪽지인지 연결
@@ -87,25 +88,33 @@ public class NoteController {
         return ResponseEntity.status(203).body(null);
     }
 
+
+    // 받은 쪽지 목록 조회 API
     @GetMapping("/receive")
     public ResponseEntity<?> getReceiveNote(@RequestAttribute String subject) {
 
-        // noteStatus 들중에 receiver 가 현재 로그인하고 있는 사용자로 되어있는 데이터만 가져와야함.
+        // 로그인한 사원 정보 조회 (없으면 401 Unauthorized)
         Employee subjectEmployee = employeeRepository.findById(subject).orElseThrow(()-> new ResponseStatusException(HttpStatus.UNAUTHORIZED,"미인증 상태"));
 
+        // 받은 쪽지 상태 목록 조회 (NoteStatus 기준)
         List<NoteStatus> noteStatusList = noteStatusRepository.findAllByReceiver(subjectEmployee);
 
+        // 200 OK + 받은 쪽지 상태 리스트 반환
         return ResponseEntity.status(200).body(noteStatusList);
-
     }
 
+
+    // 보낸 쪽지 목록 조회 API
     @GetMapping("/send")
     public ResponseEntity<?> getSendNote(@RequestAttribute String subject) {
 
+        // 로그인한 사원 정보 조회 (없으면 401 Unauthorized)
         Employee subjectEmployee = employeeRepository.findById(subject).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "미인증 상태"));
 
+        // 보낸 쪽지 전체 조회
         List<Note> noteList = noteRepository.findAllBySender(subjectEmployee);
 
+        // 200 OK + 보낸 쪽지 목록 반환
         return ResponseEntity.status(200).body(noteList);
     }
 }

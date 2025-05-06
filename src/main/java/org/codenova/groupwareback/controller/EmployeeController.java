@@ -31,19 +31,21 @@ import java.util.Optional;
 @Slf4j
 public class EmployeeController {
 
-    // 의존성 주입
+    // 의존성 주입을 통해 각 리포지토리를 사용 가능하게 설정
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final SerialRepository serialRepository;
 
-    @Value("${secret}")   // springframwork 패키지의 value 어노테이션
+    // application.yml에 정의된 시크릿 키를 가져옴 (JWT 서명용)
+    // springframwork 패키지의 value 어노테이션
+    @Value("${secret}")
     private String secret;
 
-    // 사원 전체 조회 API ========================================================
+    // 사원 전체 목록 조회 API ========================================================
     @GetMapping
     public ResponseEntity<List<Employee>> getEmployeeHandle() {
 
-        // 모든 사원 목록 조회
+        // DB에서 모든 사원 정보 조회
         List<Employee> list = employeeRepository.findAll();
 
         // 200 OK와 함께 사원 리스트 반환
@@ -56,7 +58,7 @@ public class EmployeeController {
     public ResponseEntity<Employee> postEmployeeHandle(@RequestBody @Valid AddEmployee addEmployee,
                                                        BindingResult result) {
 
-        // 유효성 검증 (실패시 400 bad request)
+        // 유효성 검사 실패시 400 bad request
         if (result.hasErrors()) {
             // 400 서버가 클라이언트 오류를 감지해 요청을 처리할 수 없는 코드
             return ResponseEntity.status(400).body(null);
@@ -105,17 +107,17 @@ public class EmployeeController {
     }
 
 
-    // 로그인 인증 API ===========================================================
+    // 로그인 인증 처리 API ===========================================================
     @PostMapping("/verify")
     public ResponseEntity<LoginResult> verifyHandle(@RequestBody @Valid Login login,
                                           BindingResult result) {
 
-        // 요청 데이터가 유효하지 않으면 400 Bad Request
+        // 로그인 입력값이 잘못되었을 경우 400 Bad Request
         if (result.hasErrors()) {
             return ResponseEntity.status(400).body(null);
         }
 
-        // 사원 ID로 조회
+        // 사원 ID로 사원 정보 조회
         Optional<Employee> employee = employeeRepository.findById(login.getId());
 
         // 사원이 없거나 비밀번호가 틀리면 401 Unauthorized
@@ -123,13 +125,13 @@ public class EmployeeController {
             return ResponseEntity.status(401).body(null);
         }
 
-        // JWT 토큰 생성
+        // JWT 토큰 생성 (HMAC256 + 시크릿 키)
         String token = JWT.create()
                 .withIssuer("groupware")              // 발급자 정보
                 .withSubject(employee.get().getId())  // subject에 사원 ID 저장
                 .sign(Algorithm.HMAC256(secret));     // 비밀키로 서명
 
-        // 응답 객체 생성
+        // 로그인 성공 시 반환할 응답 객체 생성
         LoginResult loginResult = LoginResult.builder()  // LoginResult 객체를 빌더 패턴으로 생성 시작
                 .token(token)                            // JWT 토큰을 응답에 포함시킴
                 .employee(employee.get())                // 로그인한 사원의 전체 정보를 포함시킴
