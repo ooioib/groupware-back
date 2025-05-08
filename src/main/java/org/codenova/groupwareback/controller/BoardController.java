@@ -9,6 +9,7 @@ import org.codenova.groupwareback.request.AddBoard;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,6 +26,7 @@ public class BoardController {
     // 사원과 게시글 정보를 다루기 위한 리포지토리 의존성 주입
     private final EmployeeRepository employeeRepository;
     private final BoardRepository boardRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 신규 글 등록 API =========================================================
     @PostMapping
@@ -51,6 +53,8 @@ public class BoardController {
         // DB에 게시글 저장
         boardRepository.save(board);
 
+        messagingTemplate.convertAndSend("/public", "새 글이 등록되었습니다.");
+
         // 201 Created 응답 + 저장된 게시글 정보 반환
         return ResponseEntity.status(201).body(board);
     }
@@ -63,6 +67,7 @@ public class BoardController {
         // ID 기준으로 내림차순 정렬하여 모든 게시글 조회
         List<Board> boards = boardRepository.findAll(Sort.by("id").descending());
 
+        messagingTemplate.convertAndSend("/public", "누군가 게시글 가져감");
         // 200 OK 응답 + 게시글 리스트 반환
         return ResponseEntity.status(200).body(boards);
     }

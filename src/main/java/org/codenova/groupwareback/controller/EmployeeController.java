@@ -18,6 +18,7 @@ import org.codenova.groupwareback.response.LoginResult;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +36,7 @@ public class EmployeeController {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final SerialRepository serialRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // application.yml에 정의된 시크릿 키를 가져옴 (JWT 서명용)
     // springframwork 패키지의 value 어노테이션
@@ -136,6 +138,9 @@ public class EmployeeController {
                 .token(token)                            // JWT 토큰을 응답에 포함시킴
                 .employee(employee.get())                // 로그인한 사원의 전체 정보를 포함시킴
                 .build();                                // 최종적으로 LoginResult 객체 완성
+
+        messagingTemplate.convertAndSend("/public",
+                employee.get().getId()+" 가 로그인하였습니다.");
 
         // 200 OK + 로그인 결과 반환
         return ResponseEntity.status(200).body(loginResult);

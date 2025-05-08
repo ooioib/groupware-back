@@ -21,9 +21,10 @@ public class AppConfig implements WebMvcConfigurer {
         // 여러 패턴을 동시에 지정하고 싶으면 , 로 여러개 지정하면 된다.
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns(
-                        "/api/private/**",  // /api/private 이하 모든 요청
-                        "/api/board/**",    // /api/board 이하 모든 요청
-                        "/api/note/**"      // /api/note 이하 모든 요청
+                        "/api/private/**",   // /api/private 이하 모든 요청
+                        "/api/board/**",     // /api/board 이하 모든 요청
+                        "/api/note/**",      // /api/note 이하 모든 요청
+                        "/api/chat/**"
                 );
     }
 }
