@@ -203,4 +203,21 @@ public class NoteController {
         // 읽음 처리된 NoteStatus 정보를 응답으로 반환 (200 OK)
         return ResponseEntity.status(200).body(noteStatus);
     }
+
+    // 받은 쪽지 삭제 API ===================================================
+    @DeleteMapping("/inBox-delete")
+    public ResponseEntity<?> deleteNote(@RequestAttribute String subject,
+                                        @RequestBody Long id) {
+
+        Employee employee = employeeRepository.findById(subject)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "미인증 상태"));
+
+        // 받은 쪽지 상태 목록 조회 (NoteStatus 기준)
+        List<NoteStatus> noteStatusList = noteStatusRepository.findAllByReceiver(employee);
+
+        // 200 OK + 받은 쪽지 상태 리스트 반환
+        return ResponseEntity.status(200).body(noteStatusList);
+    }
+
+
 }
