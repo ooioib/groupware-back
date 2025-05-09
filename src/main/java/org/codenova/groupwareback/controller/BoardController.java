@@ -43,16 +43,17 @@ public class BoardController {
 
         // 게시글 객체 생성
         Board board = Board.builder()
-                .writer(employee)                     // 작성자 설정
-                .title(addBoard.getTitle())           // 제목 설정
-                .content(addBoard.getContent())       // 내용 설정
-                .wroteAt(LocalDateTime.now())         // 작성 시각 설정
+                .writer(employee)                     // 작성자
+                .title(addBoard.getTitle())           // 제목
+                .content(addBoard.getContent())       // 내용
+                .wroteAt(LocalDateTime.now())         // 작성 시각
                 .viewCount(0)                         // 조회수 0으로 초기화
                 .build();
 
         // DB에 게시글 저장
         boardRepository.save(board);
 
+        // /public 채널로 새 글 등록 실시간 알림 전송
         messagingTemplate.convertAndSend("/public", "새 글이 등록되었습니다.");
 
         // 201 Created 응답 + 저장된 게시글 정보 반환
@@ -67,7 +68,9 @@ public class BoardController {
         // ID 기준으로 내림차순 정렬하여 모든 게시글 조회
         List<Board> boards = boardRepository.findAll(Sort.by("id").descending());
 
+        // 누군가 게시글 목록을 가져갔다는 실시간 알림 전송
         messagingTemplate.convertAndSend("/public", "누군가 게시글 가져감");
+
         // 200 OK 응답 + 게시글 리스트 반환
         return ResponseEntity.status(200).body(boards);
     }

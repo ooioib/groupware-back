@@ -27,6 +27,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         // /public 또는 /private로 시작하는 채널 구독 허용
-        registry.enableSimpleBroker("/public", "/private");
+        registry.enableSimpleBroker("/public", "/private", "/chat-department");
     }
 }
