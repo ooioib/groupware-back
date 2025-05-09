@@ -6,9 +6,12 @@ import org.codenova.groupwareback.entity.Employee;
 import org.codenova.groupwareback.repository.BoardRepository;
 import org.codenova.groupwareback.repository.EmployeeRepository;
 import org.codenova.groupwareback.request.AddBoard;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -63,16 +66,20 @@ public class BoardController {
 
     // 전체 글 정보 목록 API ======================================
     @GetMapping
-    public ResponseEntity<List<Board>> getBoards() {
+    public ResponseEntity<?> getBoards(@RequestParam(name = "p") Optional<Integer> p) {
 
         // ID 기준으로 내림차순 정렬하여 모든 게시글 조회
-        List<Board> boards = boardRepository.findAll(Sort.by("id").descending());
+        //  List<Board> boards = boardRepository.findAll(Sort.by("id").descending());
 
-        // 누군가 게시글 목록을 가져갔다는 실시간 알림 전송
-        messagingTemplate.convertAndSend("/public", "누군가 게시글 가져감");
+        int pageNumber = p.orElse(1); // int pageNumber p.isPresent() ? p.get() : 0;
+        pageNumber = pageNumber < 1 ? 1 : pageNumber;
+
+        // 첫 번째 인자 : 페이지 인덱스
+        // 두 번째 인자 : 몇 개씩 페이징 처리할 건지
+        Page<Board> boards = boardRepository.findAll(PageRequest.of(pageNumber - 1, 10));
 
         // 200 OK 응답 + 게시글 리스트 반환
-        return ResponseEntity.status(200).body(boards);
+        return ResponseEntity.status(200).body(boards.getContent());
     }
 
 
